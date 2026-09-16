@@ -5,58 +5,111 @@ export default {
     alias: ["gpromote", "grouppromote"],
     usage: "[tag]",
     category: "group",
-    description: "Promote Member to Group Admin",
+    description: "Dar administrador a un miembro del grupo",
     isGroup: true,
     isGroupAdmin: true,
     isBotAdmin: true,
+
     async run({ Chisato, from, message, groupAdmins }) {
         if (message.quoted) {
             const mention = message.quoted.sender;
-            const check = groupAdmins.map((v) => v.id).includes(mention);
-            if (check) return Chisato.sendText(from, `Sorry, the Number is already a Group Admin!`, message);
-            await Chisato.groupParticipantsUpdate(from, [mention], "promote")
+
+            const check = groupAdmins
+                .map((v) => v.id)
+                .includes(mention);
+
+            if (check) {
+                return Chisato.sendText(
+                    from,
+                    `❌ @${mention.split("@")[0]} ya es administrador del grupo.`,
+                    message,
+                    {
+                        mentions: [mention],
+                    }
+                );
+            }
+
+            await Chisato.groupParticipantsUpdate(
+                from,
+                [mention],
+                "promote"
+            )
                 .then(() =>
-                    Chisato.sendText(from, `Successfully promoted @${mention.split("@")[0]} to Group Admin!`, message, {
-                        mentions: [mention],
-                    })
+                    Chisato.sendText(
+                        from,
+                        `✅ @${mention.split("@")[0]} ahora es administrador del grupo.`,
+                        message,
+                        {
+                            mentions: [mention],
+                        }
+                    )
                 )
-                .catch(() => {
-                    Chisato.sendText(from, `Failed to promote @${mention.split("@")[0]} to Group Admin!`, message, {
-                        mentions: [mention],
-                    });
-                });
-        } else if (message.mentions) {
-            const mention = message.mentions;
-            for (let i in mention) {
-                const check = groupAdmins.map((v) => v.id).includes(mention[i]);
-                if (check) return Chisato.sendText(from, `Sorry, the Number is already a Group Admin!`, message);
-                await Chisato.groupParticipantsUpdate(from, [mention[i]], "promote")
+                .catch(() =>
+                    Chisato.sendText(
+                        from,
+                        `❌ No pude hacer administrador a @${mention.split("@")[0]}.`,
+                        message,
+                        {
+                            mentions: [mention],
+                        }
+                    )
+                );
+        } else if (message.mentions && message.mentions.length > 0) {
+            const mentions = message.mentions;
+
+            for (const mention of mentions) {
+                const check = groupAdmins
+                    .map((v) => v.id)
+                    .includes(mention);
+
+                if (check) {
+                    await Chisato.sendText(
+                        from,
+                        `❌ @${mention.split("@")[0]} ya es administrador del grupo.`,
+                        message,
+                        {
+                            mentions: [mention],
+                        }
+                    );
+                    continue;
+                }
+
+                await Chisato.groupParticipantsUpdate(
+                    from,
+                    [mention],
+                    "promote"
+                )
                     .then(() =>
                         Chisato.sendText(
                             from,
-                            `Successfully promoted @${mention[i].split("@")[0]} to Group Admin!`,
+                            `✅ @${mention.split("@")[0]} ahora es administrador del grupo.`,
                             message,
-                            { mentions: [mention[i]] }
+                            {
+                                mentions: [mention],
+                            }
                         )
                     )
-                    .catch(() => {
+                    .catch(() =>
                         Chisato.sendText(
                             from,
-                            `Failed to promote @${mention[i].split("@")[0]} to Group Admin!`,
+                            `❌ No pude hacer administrador a @${mention.split("@")[0]}.`,
                             message,
-                            { mentions: [mention[i]] }
-                        );
-                    });
+                            {
+                                mentions: [mention],
+                            }
+                        )
+                    );
             }
         } else {
-            const caption = `Example :
+            const caption =
+                `*「 PROMOTE 」*\n\n` +
+                `Da administrador a un miembro del grupo.\n\n` +
+                `*Con etiqueta:*\n` +
+                `• .promote @usuario\n\n` +
+                `*Respondiendo a un mensaje:*\n` +
+                `• .promote`;
 
-*With Tag*
-• /promote @6281311850715
-
-*With Reply Message*
-• /promote`;
-            Chisato.sendText(from, caption, message);
+            await Chisato.sendText(from, caption, message);
         }
     },
 } satisfies ConfigCommands;
