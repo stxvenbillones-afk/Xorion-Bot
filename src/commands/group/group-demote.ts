@@ -5,61 +5,111 @@ export default {
     alias: ["gdemote", "groupdemote"],
     usage: "[tag|reply]",
     category: "group",
-    description: "Demote Member from Group Admin",
+    description: "Quitar administrador a un miembro del grupo",
     isGroup: true,
     isGroupAdmin: true,
     isBotAdmin: true,
+
     async run({ Chisato, from, message, groupAdmins }) {
         if (message.quoted) {
             const mention = message.quoted.sender;
-            const check = groupAdmins.map((v) => v.id).includes(mention);
-            if (!check) return Chisato.sendText(from, `Sorry, this number is not in the Group Admin!`, message);
-            await Chisato.groupParticipantsUpdate(from, [mention], "demote")
+
+            const check = groupAdmins
+                .map((v) => v.id)
+                .includes(mention);
+
+            if (!check) {
+                return Chisato.sendText(
+                    from,
+                    `❌ @${mention.split("@")[0]} no es administrador del grupo.`,
+                    message,
+                    {
+                        mentions: [mention],
+                    }
+                );
+            }
+
+            await Chisato.groupParticipantsUpdate(
+                from,
+                [mention],
+                "demote"
+            )
                 .then(() =>
                     Chisato.sendText(
                         from,
-                        `Successfully demoted @${mention.split("@")[0]} from Group Admin!`,
+                        `✅ Se quitó el administrador del grupo a @${mention.split("@")[0]}.`,
                         message,
-                        { mentions: [mention] }
+                        {
+                            mentions: [mention],
+                        }
                     )
                 )
-                .catch(() => {
-                    Chisato.sendText(from, `Failed to demote @${mention.split("@")[0]} from Group Admin!`, message, {
-                        mentions: [mention],
-                    });
-                });
-        } else if (message.mentions) {
-            const mention = message.mentions;
-            for (let i in mention) {
-                const check = groupAdmins.map((v) => v.id).includes(mention[i]);
-                if (!check) return Chisato.sendText(from, `Sorry, this number is not in the Group Admin!`, message);
-                await Chisato.groupParticipantsUpdate(from, [mention[i]], "demote")
+                .catch(() =>
+                    Chisato.sendText(
+                        from,
+                        `❌ No pude quitarle el administrador a @${mention.split("@")[0]}.`,
+                        message,
+                        {
+                            mentions: [mention],
+                        }
+                    )
+                );
+        } else if (message.mentions && message.mentions.length > 0) {
+            const mentions = message.mentions;
+
+            for (const mention of mentions) {
+                const check = groupAdmins
+                    .map((v) => v.id)
+                    .includes(mention);
+
+                if (!check) {
+                    await Chisato.sendText(
+                        from,
+                        `❌ @${mention.split("@")[0]} no es administrador del grupo.`,
+                        message,
+                        {
+                            mentions: [mention],
+                        }
+                    );
+                    continue;
+                }
+
+                await Chisato.groupParticipantsUpdate(
+                    from,
+                    [mention],
+                    "demote"
+                )
                     .then(() =>
                         Chisato.sendText(
                             from,
-                            `Successfully demoted @${mention[i].split("@")[0]} from Group Admin!`,
+                            `✅ Se quitó el administrador del grupo a @${mention.split("@")[0]}.`,
                             message,
-                            { mentions: [mention[i]] }
+                            {
+                                mentions: [mention],
+                            }
                         )
                     )
-                    .catch(() => {
+                    .catch(() =>
                         Chisato.sendText(
                             from,
-                            `Failed to demote @${mention[i].split("@")[0]} from Group Admin!`,
+                            `❌ No pude quitarle el administrador a @${mention.split("@")[0]}.`,
                             message,
-                            { mentions: [mention[i]] }
-                        );
-                    });
+                            {
+                                mentions: [mention],
+                            }
+                        )
+                    );
             }
         } else {
-            const caption = `Example :
+            const caption =
+                `*「 DEMOTE 」*\n\n` +
+                `Quita el administrador a un miembro del grupo.\n\n` +
+                `*Con etiqueta:*\n` +
+                `• .demote @usuario\n\n` +
+                `*Respondiendo a un mensaje:*\n` +
+                `• .demote`;
 
-*With Tag*
-• /demote @6281311850715
-
-*With Reply Message*
-• /demote`;
-            Chisato.sendText(from, caption, message);
+            await Chisato.sendText(from, caption, message);
         }
     },
 } satisfies ConfigCommands;
