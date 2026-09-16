@@ -5,122 +5,208 @@ export default {
     name: "leaderboard",
     alias: ["lb", "top", "topusers"],
     category: "general",
-    usage: "[number]",
-    description: "View the top users ranked by level and XP",
+    usage: "[número]",
+    description: "Ver los usuarios con mayor nivel y XP",
     cooldown: 10,
+
     async run({ Chisato, from, message, Database, args, prefix, command }) {
-        
+
         if (args.length > 0 && isNaN(parseInt(args[0]))) {
-            const infoMessage = `*「 LEADERBOARD 」*
+            const infoMessage =
+                `*「 CLASIFICACIÓN 」*\n\n` +
+                `🏆 Mira quién está en los primeros puestos.\n\n` +
+                `💡 *Uso:*\n` +
+                `${prefix}${command.name} - Ver los 10 mejores usuarios\n` +
+                `${prefix}${command.name} [número] - Ver una cantidad específica\n\n` +
+                `📋 *Ejemplo:*\n` +
+                `${prefix}${command.name}\n` +
+                `${prefix}${command.name} 20`;
 
-🏆 See who's at the top!
-
-💡 *Usage:*
-${prefix}${command.name} - View top 10 users
-${prefix}${command.name} [number] - View specific amount
-
-📋 *Example:*
-${prefix}${command.name}
-${prefix}${command.name} 20`
             return Chisato.sendText(from, infoMessage, message);
         }
 
         try {
-            await Chisato.sendReaction(from, "⏳", message.key);
-            
-            const limit = Math.min(parseInt(args[0]) || 10, 50);
-            
+            await Chisato.sendReaction(
+                from,
+                "⏳",
+                message.key
+            );
+
+            const limit = Math.min(
+                parseInt(args[0]) || 10,
+                50
+            );
+
             const allUsers = await Database.User.getAll();
-            
+
             if (!allUsers || allUsers.length === 0) {
-                await Chisato.sendReaction(from, "❌", message.key);
+                await Chisato.sendReaction(
+                    from,
+                    "❌",
+                    message.key
+                );
+
                 return Chisato.sendText(
                     from,
-                    `❌ No user data available yet!`,
+                    "❌ Todavía no hay datos de usuarios.",
                     message
                 );
             }
-            
-            const botNumber = await Chisato.decodeJid(Chisato.user.id);
-            
+
+            const botNumber = await Chisato.decodeJid(
+                Chisato.user.id
+            );
+
             const sortedUsers = allUsers
                 .filter(user => {
-                    return user.userId !== botNumber && 
-                           user.level && 
-                           user.level.totalXp > 0;
+                    return (
+                        user.userId !== botNumber &&
+                        user.level &&
+                        user.level.totalXp > 0
+                    );
                 })
-                .sort((a, b) => (b.level?.totalXp || 0) - (a.level?.totalXp || 0))
+                .sort(
+                    (a, b) =>
+                        (b.level?.totalXp || 0) -
+                        (a.level?.totalXp || 0)
+                )
                 .slice(0, limit);
-            
+
             if (sortedUsers.length === 0) {
-                await Chisato.sendReaction(from, "❌", message.key);
+                await Chisato.sendReaction(
+                    from,
+                    "❌",
+                    message.key
+                );
+
                 return Chisato.sendText(
                     from,
-                    `❌ No ranked users found!`,
+                    "❌ No hay usuarios clasificados todavía.",
                     message
                 );
             }
-            
-            const currentUserIndex = sortedUsers.findIndex(u => u.userId === message.sender);
-            const currentUserRank = currentUserIndex >= 0 ? currentUserIndex + 1 : null;
-            
-            let text = `*「 🏆 LEADERBOARD 」*\n\n`;
-            text += `📊 Top ${sortedUsers.length} Users\n\n`;
-            
+
+            const currentUserIndex =
+                sortedUsers.findIndex(
+                    u => u.userId === message.sender
+                );
+
+            const currentUserRank =
+                currentUserIndex >= 0
+                    ? currentUserIndex + 1
+                    : null;
+
+            let text =
+                `*「 🏆 CLASIFICACIÓN XORION 」*\n\n`;
+
+            text += `📊 Top ${sortedUsers.length} usuarios\n\n`;
+
             const mentions: string[] = [];
-            
+
             sortedUsers.forEach((user, index) => {
                 const position = index + 1;
+
                 const levelInfo = getLevelInfo(
                     user.level?.level || 1,
                     user.level?.xp || 0,
                     user.level?.totalXp || 0
                 );
-                
+
                 let medal = "";
+
                 if (position === 1) medal = "🥇";
                 else if (position === 2) medal = "🥈";
                 else if (position === 3) medal = "🥉";
                 else medal = `${position}.`;
-                
-                const isCurrentUser = user.userId === message.sender;
-                const marker = isCurrentUser ? "👉 " : "";
-                
+
+                const isCurrentUser =
+                    user.userId === message.sender;
+
+                const marker = isCurrentUser
+                    ? "👉 "
+                    : "";
+
                 mentions.push(user.userId);
-                
-                text += `${marker}${medal} ${levelInfo.rankEmoji} @${user.userId.split("@")[0]}\n`;
-                text += `   Lv ${levelInfo.level} • ${levelInfo.totalXp.toLocaleString()} XP\n`;
-                
+
+                text +=
+                    `${marker}${medal} ` +
+                    `${levelInfo.rankEmoji} ` +
+                    `@${user.userId.split("@")[0]}\n`;
+
+                text +=
+                    `   Nivel ${levelInfo.level} • ` +
+                    `${levelInfo.totalXp.toLocaleString()} XP\n`;
+
                 if (index < sortedUsers.length - 1) {
                     text += `\n`;
                 }
             });
-            
-            if (currentUserRank && currentUserRank > limit) {
-                const currentUser = await Database.User.get(message.sender);
-                if (currentUser && currentUser.level) {
+
+            if (
+                currentUserRank &&
+                currentUserRank > limit
+            ) {
+                const currentUser =
+                    await Database.User.get(
+                        message.sender
+                    );
+
+                if (
+                    currentUser &&
+                    currentUser.level
+                ) {
                     const levelInfo = getLevelInfo(
                         currentUser.level.level,
                         currentUser.level.xp,
                         currentUser.level.totalXp
                     );
-                    
-                    text += `\n\n${"─".repeat(30)}\n`;
-                    text += `👤 *Your Rank:* ${getPositionSuffix(currentUserRank)}\n`;
-                    text += `${levelInfo.rankEmoji} Level ${levelInfo.level} • ${levelInfo.totalXp.toLocaleString()} XP`;
+
+                    text +=
+                        `\n\n${"─".repeat(30)}\n`;
+
+                    text +=
+                        `👤 *Tu posición:* ` +
+                        `${getPositionSuffix(currentUserRank)}\n`;
+
+                    text +=
+                        `${levelInfo.rankEmoji} ` +
+                        `Nivel ${levelInfo.level} • ` +
+                        `${levelInfo.totalXp.toLocaleString()} XP`;
                 }
             }
-            
-            text += `\n\n💡 Use commands to gain XP and climb the ranks!`;
-            
-            await Chisato.sendText(from, text, message, { mentions });
-            await Chisato.sendReaction(from, "✅", message.key);
-        } catch (error) {
-            await Chisato.sendReaction(from, "❌", message.key);
-            Chisato.logger.error(`Leaderboard command error:`, error);
+
+            text +=
+                `\n\n💡 Usa los comandos para ganar XP ` +
+                `y subir de posición.`;
+
             await Chisato.sendText(
                 from,
-                "❌ Failed to retrieve leaderboard. Please try again.",
+                text,
+                message,
+                { mentions }
+            );
+
+            await Chisato.sendReaction(
+                from,
+                "✅",
+                message.key
+            );
+
+        } catch (error) {
+            await Chisato.sendReaction(
+                from,
+                "❌",
+                message.key
+            );
+
+            Chisato.logger.error(
+                "Error en el comando leaderboard:",
+                error
+            );
+
+            await Chisato.sendText(
+                from,
+                "❌ No pude obtener la clasificación. Inténtalo nuevamente.",
                 message
             );
         }
